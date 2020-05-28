@@ -100,7 +100,7 @@ const getAllProperties = function(options, limit = 10) {
   let queryString = `
    SELECT properties.*, AVG(property_reviews.rating) AS average_rating
    FROM properties
-   JOIN property_reviews ON properties.id = property_id
+   LEFT JOIN property_reviews ON properties.id = property_id
    `;
 
   //Collection of checks for filters utilizing checker
@@ -175,11 +175,10 @@ const addProperty = function(property) {
     scrubbingKey += (keys[keys.length - 1] === key ? `$${valuesToInput.length})` : `$${valuesToInput.length}, `);
   });
 
-  queryString = queryString + valueDeclarationToTable + ' VALUES ' + scrubbingKey + ';';
-
+  queryString = queryString + valueDeclarationToTable + ' VALUES ' + scrubbingKey + ' RETURNING *;';  
   
   return pool.query(queryString, valuesToInput)
-    .then(res => res.rows);
+    .then(res => res.rows[0]);
 };
 exports.addProperty = addProperty;
 
