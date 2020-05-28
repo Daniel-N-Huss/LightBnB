@@ -92,53 +92,37 @@ exports.getAllReservations = getAllReservations;
  */
 const getAllProperties = function(options, limit = 10) {
   const queryParams = [];
-  let whereCheck = false;
+
+  const checker = () => queryParams.length ? ' AND' : 'WHERE';
+
   let queryString = `
    SELECT properties.*, AVG(property_reviews.rating) AS average_rating
    FROM properties
    JOIN property_reviews ON properties.id = property_id
    `;
 
-  if (options.city && whereCheck) {
+  if (options.city) {
+    let syntax = checker();
     queryParams.push(`%${options.city}%`);
-    queryString += ` AND city LIKE $${queryParams.length}`;
-
-  } else if (options.city && whereCheck === false) {
-    queryParams.push(`%${options.city}%`);
-    queryString += `WHERE city LIKE $${queryParams.length}`;
-    whereCheck = true;
+    queryString += `${syntax} city LIKE $${queryParams.length}`;
   }
 
-
-  if (options.owner_id && whereCheck) {
+  if (options.owner_id) {
+    let syntax = checker();
     queryParams.push(`${options.owner_id}`);
-    queryString += ` AND owner_id = $${queryParams.length}`;
-
-  } else if (options.owner_id && whereCheck === false) {
-    queryParams.push(`${options.owner_id}`);
-    queryString += `WHERE owner_id = $${queryParams.length}`;
-    whereCheck = true;
+    queryString += `${syntax} owner_id = $${queryParams.length}`;
   }
 
-  if (options.minimum_price_per_night && whereCheck) {
+  if (options.minimum_price_per_night) {
+    let syntax = checker();
     queryParams.push(`${options.minimum_price_per_night}`);
-    queryString += ` AND cost_per_night > $${queryParams.length}`;
-
-  } else if (options.minimum_price_per_night && whereCheck === false) {
-    queryParams.push(`${options.minimum_price_per_night}`);
-    queryString += `WHERE cost_per_night > $${queryParams.length}`;
-    whereCheck = true;
+    queryString += `${syntax} cost_per_night > $${queryParams.length}`;
   }
 
   if (options.maximum_price_per_night) {
+    let syntax = checker();
     queryParams.push(`${options.maximum_price_per_night}`);
-
-    if (whereCheck) {
-      queryString += ` AND cost_per_night < $${queryParams.length}`;
-    } else if (!whereCheck) {
-      queryString += `WHERE cost_per_night < $${queryParams.length}`;
-      whereCheck = true;
-    }
+    queryString += `${syntax} cost_per_night < $${queryParams.length}`;
   }
 
   queryString += ` 
@@ -155,8 +139,6 @@ const getAllProperties = function(options, limit = 10) {
     ORDER BY cost_per_night
     LIMIT $${queryParams.length}
   `;
-
-  console.log(queryString, queryParams);
 
   return pool.query(queryString, queryParams)
     .then(res => {
