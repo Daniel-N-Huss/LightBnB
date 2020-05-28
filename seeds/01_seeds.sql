@@ -31,7 +31,7 @@ VALUES (1, 3, '2020/12/01', '2020/12/08'),
 (2, 5, '2019/01/05', '2019/01/25'),
 (1, 2, '2020/06/07', '2020/06/15');
 
-INSERT INTO reviews (property_id, reservation_id, guest_id, message, rating)
+INSERT INTO property_reviews (property_id, reservation_id, guest_id, message, rating)
 VALUES (1, 1, 3, 'message', 5),
 (2, 2, 5, 'this place sux not enough gold decor', 0),
 (1, 3, 2, 'message', 4);
