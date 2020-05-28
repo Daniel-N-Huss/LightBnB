@@ -93,14 +93,17 @@ exports.getAllReservations = getAllReservations;
 const getAllProperties = function(options, limit = 10) {
   const queryParams = [];
 
+  //Syntax checker
   const checker = () => queryParams.length ? ' AND' : 'WHERE';
 
+  //Main shell of query
   let queryString = `
    SELECT properties.*, AVG(property_reviews.rating) AS average_rating
    FROM properties
    JOIN property_reviews ON properties.id = property_id
    `;
 
+  //Collection of checks for filters utilizing checker
   if (options.city) {
     let syntax = checker();
     queryParams.push(`%${options.city}%`);
@@ -125,6 +128,7 @@ const getAllProperties = function(options, limit = 10) {
     queryString += `${syntax} cost_per_night < $${queryParams.length}`;
   }
 
+  // Mandatory grouping
   queryString += ` 
     GROUP BY properties.id`;
 
@@ -134,6 +138,7 @@ const getAllProperties = function(options, limit = 10) {
     HAVING AVG(property_reviews.rating) > $${queryParams.length}`;
   }
 
+  //Mandatory ordering
   queryParams.push(limit);
   queryString += `
     ORDER BY cost_per_night
@@ -155,19 +160,47 @@ exports.getAllProperties = getAllProperties;
  * @return {Promise<{}>} A promise to the property.
  */
 const addProperty = function(property) {
-  const propertyId = Object.keys(properties).length + 1;
-  property.id = propertyId;
-  properties[propertyId] = property;
-  return Promise.resolve(property);
-}
+  const keys = Object.keys(property);
+  
+  //Building a query string with any number of variables brought through the property parameter object
+  let valueDeclarationToTable = '(';
+  let valuesToInput = [];
+  let scrubbingKey = `(`;
+
+  let queryString = `INSERT INTO properties `;
+  
+  keys.forEach(key => {
+    valueDeclarationToTable += (keys[keys.length - 1] === key ? `${key})` : `${key}, `);
+    valuesToInput.push(property[key]);
+    scrubbingKey += (keys[keys.length - 1] === key ? `$${valuesToInput.length})` : `$${valuesToInput.length}, `);
+  });
+
+  queryString = queryString + valueDeclarationToTable + ' VALUES ' + scrubbingKey + ';';
+
+  
+  return pool.query(queryString, valuesToInput)
+    .then(res => res.rows);
+};
 exports.addProperty = addProperty;
 
-/*
-SELECT properties.*, AVG(property_reviews.rating)
-FROM properties
-JOIN property_reviews ON properties.id = property_id
-WHERE city LIKE '%Vancouver'
-GROUP BY properties.id
-ORDER BY cost_per_night
-LIMIT 10;
+
+
+//// Add RETURNING * to the end of the saved query
+/* All object items MUST come EXCEPT denoted by ' --X'
+{
+  owner_id: int,
+  title: string,
+  description: string, --X
+  thumbnail_photo_url: string,
+  cover_photo_url: string,
+  cost_per_night: string,
+  street: string,
+  city: string,
+  province: string,
+  post_code: string,
+  country: string,
+  parking_spaces: int,
+  number_of_bathrooms: int,
+  number_of_bedrooms: int
+}
 */
